@@ -1,0 +1,4 @@
+[submodule "mk"]
+	path = mk
+	url = git@github.com:janodevorg/mk.git
+	branch = development

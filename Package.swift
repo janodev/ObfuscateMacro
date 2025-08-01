@@ -20,18 +20,12 @@ let package = Package(
         ),
     ],
     dependencies: [
-        .package(
-            url: "https://github.com/swiftlang/swift-syntax.git",
-            "509.0.0"..<"602.0.0"
-        ),
-        .package(
-            url: "https://github.com/apple/swift-algorithms",
-            from: "1.1.0"
-        ),
-        .package(
-            url: "https://github.com/apple/swift-crypto.git",
-            "1.0.0"..<"4.0.0"
-        )
+        .package(path: "../swift-syntax"),
+        .package(url: "https://github.com/apple/swift-algorithms", from: "1.1.0"),
+        .package(url: "https://github.com/apple/swift-crypto.git", "1.0.0"..<"4.0.0")
+
+        // .package(url: "https://github.com/swiftlang/swift-syntax.git", "509.0.0"..<"602.0.0"),
+        // replaced with https://github.com/Concoction/swift-syntax
     ],
     targets: [
         .target(
