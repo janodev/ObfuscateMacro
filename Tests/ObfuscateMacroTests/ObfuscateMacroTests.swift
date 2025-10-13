@@ -421,16 +421,16 @@ final class ObfuscateMacroTests: XCTestCase {
 
     func testMultilineString() {
         XCTAssertEqual(
-            """
-            Line 1\nLine 2\nhello, こんにちは, 👪\n3
-            """,
             #ObfuscatedString(
             """
             Line 1
             Line 2
             hello, こんにちは, 👪
             3
-            """, method: .bitShift)
+            """, method: .bitShift),
+            """
+            Line 1\nLine 2\nhello, こんにちは, 👪\n3
+            """.withPlatformNewLineIfNeeded
         )
 
         XCTAssertEqual(
@@ -514,5 +514,23 @@ final class ObfuscateMacroTests: XCTestCase {
             ],
             macros: macros
         )
+    }
+}
+
+extension String {
+    var withPlatformNewLineIfNeeded: String {
+#if canImport(SwiftSyntax602)
+        return self
+#else
+        return withPlatformNewLine
+#endif
+    }
+
+    var withPlatformNewLine: String {
+#if os(Windows)
+        return replacingOccurrences(of: "\n", with: "\r\n")
+#else
+        return self
+#endif
     }
 }

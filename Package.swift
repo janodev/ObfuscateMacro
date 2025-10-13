@@ -3,6 +3,17 @@
 import PackageDescription
 import CompilerPluginSupport
 
+#if os(Windows)
+    let macroSwiftSettings: [SwiftSetting] = [
+        .unsafeFlags([
+            "-Xfrontend", "-entry-point-function-name",
+            "-Xfrontend", "wWinMain",
+        ]),
+    ]
+#else
+    let macroSwiftSettings: [SwiftSetting] = []
+#endif
+
 let package = Package(
     name: "ObfuscateMacro",
     platforms: [
@@ -20,12 +31,18 @@ let package = Package(
         ),
     ],
     dependencies: [
-        .package(path: "../swift-syntax"),
-        .package(url: "https://github.com/apple/swift-algorithms", from: "1.1.0"),
-        .package(url: "https://github.com/apple/swift-crypto.git", "1.0.0"..<"4.0.0")
-
-        // .package(url: "https://github.com/swiftlang/swift-syntax.git", "509.0.0"..<"602.0.0"),
-        // replaced with https://github.com/Concoction/swift-syntax
+        .package(
+            url: "https://github.com/swiftlang/swift-syntax.git",
+            "509.0.0"..<"603.0.0"
+        ),
+        .package(
+            url: "https://github.com/apple/swift-algorithms",
+            from: "1.1.0"
+        ),
+        .package(
+            url: "https://github.com/apple/swift-crypto.git",
+            "1.0.0"..<"4.0.0"
+        )
     ],
     targets: [
         .target(
@@ -49,7 +66,8 @@ let package = Package(
                 .product(name: "Algorithms", package: "swift-algorithms"),
                 .product(name: "Crypto", package: "swift-crypto"),
                 "ObfuscateSupport"
-            ]
+            ],
+            swiftSettings: macroSwiftSettings
         ),
         .target(name: "ObfuscateSupport"),
         .testTarget(
