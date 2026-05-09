@@ -21,8 +21,8 @@ let package = Package(
     ],
     dependencies: [
         .package(
-            url: "https://github.com/swiftlang/swift-syntax.git",
-            "509.0.0"..."603.0.1"
+            url: "https://github.com/swift-precompiled/swift-syntax.git",
+            exact: "603.0.0"
         ),
         .package(
             url: "https://github.com/apple/swift-algorithms",
