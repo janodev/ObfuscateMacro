@@ -7,14 +7,14 @@
 //
 
 import Algorithms
+import Crypto
+import Foundation
+import ObfuscateSupport
+import SwiftParser
 import SwiftSyntax
 import SwiftSyntaxBuilder
 import SwiftSyntaxMacros
-import Foundation
-import Crypto
-import SwiftParser
 import Synchronization
-import ObfuscateSupport
 
 struct ObfuscatedString {
     typealias Diagnostic = ObfuscateMacroDiagnostic
@@ -109,20 +109,36 @@ struct ObfuscatedString {
 extension ObfuscatedString: ExpressionMacro {
     typealias SendableRandomNumberGenerator = any RandomNumberGenerator & Sendable
 
-    private static let randomNumberGenerator = Mutex<SendableRandomNumberGenerator>(SystemRandomNumberGenerator())
+    private final class LockedRandomNumberGenerator: @unchecked Sendable {
+        private let generator: Mutex<SendableRandomNumberGenerator>
+
+        init(_ generator: SendableRandomNumberGenerator) {
+            self.generator = Mutex(generator)
+        }
+
+        func set(_ generator: SendableRandomNumberGenerator) {
+            self.generator.withLock {
+                $0 = generator
+            }
+        }
+
+        func withGenerator<T>(_ body: (inout SendableRandomNumberGenerator) throws -> T) rethrows -> T {
+            try generator.withLock {
+                try body(&$0)
+            }
+        }
+    }
+
+    private static let randomNumberGenerator = LockedRandomNumberGenerator(SystemRandomNumberGenerator())
 
     static func setRandomNumberGenerator(_ generator: SendableRandomNumberGenerator) {
-        randomNumberGenerator.withLock {
-            $0 = generator
-        }
+        randomNumberGenerator.set(generator)
     }
 
     private static func withRandomNumberGenerator<T>(
         _ body: (inout SendableRandomNumberGenerator) throws -> T
     ) rethrows -> T {
-        try randomNumberGenerator.withLock {
-            try body(&$0)
-        }
+        try randomNumberGenerator.withGenerator(body)
     }
 
     public static func expansion(
