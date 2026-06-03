@@ -13,6 +13,7 @@ import SwiftSyntaxMacros
 import Foundation
 import Crypto
 import SwiftParser
+import Synchronization
 import ObfuscateSupport
 
 struct ObfuscatedString {
@@ -106,7 +107,23 @@ struct ObfuscatedString {
 }
 
 extension ObfuscatedString: ExpressionMacro {
-    static var randomNumberGenerator: RandomNumberGenerator = SystemRandomNumberGenerator()
+    typealias SendableRandomNumberGenerator = any RandomNumberGenerator & Sendable
+
+    private static let randomNumberGenerator = Mutex<SendableRandomNumberGenerator>(SystemRandomNumberGenerator())
+
+    static func setRandomNumberGenerator(_ generator: SendableRandomNumberGenerator) {
+        randomNumberGenerator.withLock {
+            $0 = generator
+        }
+    }
+
+    private static func withRandomNumberGenerator<T>(
+        _ body: (inout SendableRandomNumberGenerator) throws -> T
+    ) rethrows -> T {
+        try randomNumberGenerator.withLock {
+            try body(&$0)
+        }
+    }
 
     public static func expansion(
         of node: some FreestandingMacroExpansionSyntax,
@@ -135,10 +152,12 @@ extension ObfuscatedString: ExpressionMacro {
             } else if candidates.count == 1 {
                 return candidates[0]
             } else {
-                let index = Int.random(
-                    in: candidates.startIndex..<candidates.endIndex,
-                    using: &randomNumberGenerator
-                )
+                let index = withRandomNumberGenerator { generator in
+                    Int.random(
+                        in: candidates.startIndex..<candidates.endIndex,
+                        using: &generator
+                    )
+                }
                 return candidates[index]
             }
         }
@@ -200,14 +219,18 @@ extension ObfuscatedString {
         _ codeBlockItems: [CodeBlockItemSyntax],
         data: Data
     ) -> ([CodeBlockItemSyntax], Data) {
-        let start: UTF8.CodeUnit = .random(
-            in: 0x00...0xFF,
-            using: &randomNumberGenerator
-        )
-        let step: UTF8.CodeUnit = .random(
-            in: 0x0...0xF,
-            using: &randomNumberGenerator
-        )
+        let start = withRandomNumberGenerator { generator in
+            UTF8.CodeUnit.random(
+                in: 0x00...0xFF,
+                using: &generator
+            )
+        }
+        let step = withRandomNumberGenerator { generator in
+            UTF8.CodeUnit.random(
+                in: 0x0...0xF,
+                using: &generator
+            )
+        }
         let obfuscatedDataElements = data.indexed().map { i, c in
             let i: UTF8.CodeUnit = UTF8.CodeUnit(i % Int(UInt8.max))
             return c &+ (start &+ (step &* i))
@@ -242,10 +265,12 @@ extension ObfuscatedString {
         _ codeBlockItems: [CodeBlockItemSyntax],
         data: Data
     ) -> ([CodeBlockItemSyntax], Data) {
-        let seed: UTF8.CodeUnit = .random(
-            in: 0x00...0xFF,
-            using: &randomNumberGenerator
-        )
+        let seed = withRandomNumberGenerator { generator in
+            UTF8.CodeUnit.random(
+                in: 0x00...0xFF,
+                using: &generator
+            )
+        }
         let obfuscatedDataElements = data.indexed().map { i, c in
             let i: UTF8.CodeUnit = UTF8.CodeUnit(i % Int(UInt8.max))
             return c ^ (seed &+ i)
@@ -305,15 +330,19 @@ extension ObfuscatedString {
         _ codeBlockItems: [CodeBlockItemSyntax],
         data: Data
     ) -> ([CodeBlockItemSyntax], Data) {
-        let keyData = Data.symmetricKeyData(
-            size: 16, // 128 bits
-            using: &randomNumberGenerator
-        )
+        let keyData = withRandomNumberGenerator { generator in
+            Data.symmetricKeyData(
+                size: 16, // 128 bits
+                using: &generator
+            )
+        }
         let key: SymmetricKey = .init(data: keyData)
 
-        let nonceData = Data.nonceData(
-            using: &randomNumberGenerator
-        )
+        let nonceData = withRandomNumberGenerator { generator in
+            Data.nonceData(
+                using: &generator
+            )
+        }
 
         guard let nonce = try? AES.GCM.Nonce(data: nonceData),
               let sealedBox = try? AES.GCM.seal(data, using: key, nonce: nonce),
@@ -349,15 +378,19 @@ extension ObfuscatedString {
         _ codeBlockItems: [CodeBlockItemSyntax],
         data: Data
     ) -> ([CodeBlockItemSyntax], Data) {
-        let keyData = Data.symmetricKeyData(
-            size: 32, // 256 bits
-            using: &randomNumberGenerator
-        )
+        let keyData = withRandomNumberGenerator { generator in
+            Data.symmetricKeyData(
+                size: 32, // 256 bits
+                using: &generator
+            )
+        }
         let key: SymmetricKey = .init(data: keyData)
 
-        let nonceData = Data.nonceData(
-            using: &randomNumberGenerator
-        )
+        let nonceData = withRandomNumberGenerator { generator in
+            Data.nonceData(
+                using: &generator
+            )
+        }
 
         guard let nonce = try? ChaChaPoly.Nonce(data: nonceData),
               let sealedBox = try? ChaChaPoly.seal(data, using: key, nonce: nonce) else {
