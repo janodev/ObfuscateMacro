@@ -4,7 +4,7 @@ import SwiftSyntaxMacrosTestSupport
 @testable import ObfuscateMacroPlugin
 @testable import ObfuscateMacro
 
-struct TestRandomNumberGenerator: RandomNumberGenerator {
+struct TestRandomNumberGenerator: RandomNumberGenerator, Sendable {
     let seed: UInt64
 
     func next() -> UInt64 {
@@ -18,7 +18,7 @@ final class ObfuscateMacroTests: XCTestCase {
     ]
 
     override func setUp() {
-        ObfuscatedString.randomNumberGenerator = TestRandomNumberGenerator(seed: 1)
+        ObfuscatedString.setRandomNumberGenerator(TestRandomNumberGenerator(seed: 1))
     }
 
     func testDeObfuscatedString() {
@@ -256,7 +256,7 @@ final class ObfuscateMacroTests: XCTestCase {
             macros: macros
         )
 
-        ObfuscatedString.randomNumberGenerator = TestRandomNumberGenerator(seed: UInt64.max / 4 * 2)
+        ObfuscatedString.setRandomNumberGenerator(TestRandomNumberGenerator(seed: UInt64.max / 4 * 2))
         assertMacroExpansion(
             originalSource,
             expandedSource: """
@@ -274,7 +274,7 @@ final class ObfuscateMacroTests: XCTestCase {
             macros: macros
         )
 
-        ObfuscatedString.randomNumberGenerator = TestRandomNumberGenerator(seed: UInt64.max / 4 * 3)
+        ObfuscatedString.setRandomNumberGenerator(TestRandomNumberGenerator(seed: UInt64.max / 4 * 3))
         assertMacroExpansion(
             originalSource,
             expandedSource: """
@@ -332,7 +332,7 @@ final class ObfuscateMacroTests: XCTestCase {
             macros: macros
         )
 
-        ObfuscatedString.randomNumberGenerator = TestRandomNumberGenerator(seed: UInt64.max / 4 * 2)
+        ObfuscatedString.setRandomNumberGenerator(TestRandomNumberGenerator(seed: UInt64.max / 4 * 2))
         assertMacroExpansion(
             originalSource,
             expandedSource: """
@@ -357,7 +357,7 @@ final class ObfuscateMacroTests: XCTestCase {
             macros: macros
         )
 
-        ObfuscatedString.randomNumberGenerator = TestRandomNumberGenerator(seed: UInt64.max / 4 * 3)
+        ObfuscatedString.setRandomNumberGenerator(TestRandomNumberGenerator(seed: UInt64.max / 4 * 3))
         assertMacroExpansion(
             originalSource,
             expandedSource: """
